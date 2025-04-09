@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Books{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search by title or author...">
+            <button class="btn btn-outline-secondary" type="button" id="searchButton">Search</button>
+        </div>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="{% url 'add_book' %}" class="btn btn-primary">Add New Book</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bookTableBody">
+                    {% for book in books %}
+                    <tr>
+                        <td>{{ book.title }}</td>
+                        <td>{{ book.author }}</td>
+                        <td>
+                            <span class="badge {% if book.status == 'TR' %}bg-secondary{% elif book.status == 'R' %}bg-primary{% else %}bg-success{% endif %}">
+                                {{ book.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'edit_book' book.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                            <a href="{% url 'delete_book' book.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No books found. Add your first book!</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+    const bookTableBody = document.getElementById('bookTableBody');
+
+    function performSearch() {
+        const query = searchInput.value.trim();
+        if (query) {
+            fetch(`/search/?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    bookTableBody.innerHTML = '';
+                    if (data.books.length === 0) {
+                        bookTableBody.innerHTML = '<tr><td colspan="4" class="text-center">No books found</td></tr>';
+                    } else {
+                        data.books.forEach(book => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${book.title}</td>
+                                <td>${book.author}</td>
+                                <td><span class="badge bg-primary">${book.status}</span></td>
+                                <td>
+                                    <a href="/edit/${book.id}/" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="/delete/${book.id}/" class="btn btn-sm btn-outline-danger">Delete</a>
+                                </td>
+                            `;
+                            bookTableBody.appendChild(row);
+                        });
+                    }
+                });
+        }
+    }
+
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            performSearch();
+        }
+    });
+});
+</script>
+{% endblock %} 
